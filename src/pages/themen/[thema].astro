@@ -1,0 +1,53 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+import FormattedDate from '../../components/FormattedDate.astro';
+
+export async function getStaticPaths() {
+    const allPosts = await getCollection('blog');
+    const uniqueThemen = [...new Set(allPosts.flatMap((post) => post.data.themen || []))];
+    
+    return uniqueThemen.map((thema) => {
+        const filteredPosts = allPosts.filter((post) => post.data.themen?.includes(thema));
+        return {
+            params: { thema },
+            props: { posts: filteredPosts },
+        };
+    });
+}
+
+const { thema } = Astro.params;
+const { posts } = Astro.props;
+
+// Posts nach Datum sortieren
+const sortedPosts = posts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+---
+
+<BaseLayout title={`Thema: ${thema}`}>
+    <div class="max-w-4xl mx-auto">
+        <div class="mb-10">
+            <a href="/themen/" class="btn btn-ghost btn-sm mb-6 pl-0 hover:bg-transparent hover:text-primary">
+                <span class="icon-[mdi--arrow-left] text-lg"></span> Zurück zur Übersicht
+            </a>
+            <h1 class="text-3xl md:text-5xl font-black text-base-content">
+                Beiträge zum Thema: <span class="text-primary">{thema}</span>
+            </h1>
+            <div class="text-base-content/70 mt-2">{posts.length} Beitrag/Beiträge gefunden</div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {sortedPosts.map(post => (
+                <a href={`/blog/${post.id}/`} class="card bg-base-200 hover:bg-base-300 transition-colors shadow-sm hover:shadow-md">
+                    <div class="card-body p-6">
+                        <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary mb-2">
+                            <span class="icon-[mdi--calendar-blank] text-base"></span>
+                            <FormattedDate date={post.data.pubDate} />
+                        </div>
+                        <h2 class="card-title text-xl leading-tight">{post.data.title}</h2>
+                        {post.data.description && <p class="text-sm opacity-80 mt-2 line-clamp-2">{post.data.description}</p>}
+                    </div>
+                </a>
+            ))}
+        </div>
+    </div>
+</BaseLayout>

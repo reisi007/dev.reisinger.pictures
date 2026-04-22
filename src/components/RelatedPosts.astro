@@ -1,0 +1,47 @@
+---
+import { getCollection, type CollectionEntry } from 'astro:content';
+import { Image } from 'astro:assets';
+import FormattedDate from './FormattedDate.astro';
+import { getRelatedPosts } from '../utils/getRelatedPosts';
+import { useTranslations, defaultLang, type SupportedLanguage } from '../i18n/ui';
+
+interface Props {
+    currentPost: CollectionEntry<'blog'>;
+}
+
+const { currentPost } = Astro.props;
+const allPosts = await getCollection('blog');
+const relatedPosts = getRelatedPosts(currentPost, allPosts, 3);
+
+const lang = Astro.currentLocale || defaultLang;
+const t = useTranslations(lang as SupportedLanguage);
+---
+
+{relatedPosts.length > 0 && (
+    <section class="mt-16 pt-8 border-t border-base-300">
+        <h2 class="text-2xl font-bold mb-6 text-base-content">{t('blog.related')}</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {relatedPosts.map(post => (
+                <a href={`/blog/${post.id}/`} class="card bg-base-200 hover:bg-base-300 transition-colors shadow-sm hover:shadow-md">
+                    {post.data.heroImage && (
+                        <figure class="aspect-video overflow-hidden">
+                            <Image 
+                                width={400} 
+                                height={225} 
+                                src={post.data.heroImage} 
+                                alt={post.data.title} 
+                                class="object-cover w-full h-full" 
+                            />
+                        </figure>
+                    )}
+                    <div class="card-body p-4">
+                        <h3 class="card-title text-lg leading-tight">{post.data.title}</h3>
+                        <p class="text-sm text-base-content/70 mt-2">
+                            <FormattedDate date={post.data.pubDate} />
+                        </p>
+                    </div>
+                </a>
+            ))}
+        </div>
+    </section>
+)}

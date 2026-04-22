@@ -1,0 +1,29 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+
+interface Props {
+    title: string;
+    description?: string;
+    image?: string;
+    showLangSwitcher?: boolean;
+}
+
+const { title, description, image, showLangSwitcher = false } = Astro.props;
+const currentLang = Astro.currentLocale || 'de';
+---
+
+<html lang={currentLang}>
+	<head>
+		<BaseHead title={title} description={description} image={image} />
+	</head>
+
+	<body class="min-h-screen flex flex-col bg-base-100 text-base-content selection:bg-primary selection:text-primary-content">
+		<Header showLangSwitcher={showLangSwitcher} />
+		<main class="flex-grow container mx-auto px-4 py-8 lg:py-12 max-w-5xl">
+            <slot />
+		</main>
+		<Footer />
+	</body>
+</html>

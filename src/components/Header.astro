@@ -1,0 +1,83 @@
+---
+import { getRelativeLocaleUrl } from 'astro:i18n';
+
+interface Props {
+	showLangSwitcher?: boolean;
+}
+const { showLangSwitcher = false } = Astro.props;
+import { useTranslations, defaultLang, type SupportedLanguage } from '../i18n/ui';
+
+const lang = Astro.currentLocale || defaultLang;
+const t = useTranslations(lang as SupportedLanguage);
+import HeaderLink from './HeaderLink.astro';
+import Search from './Search.astro';
+---
+
+<header class="sticky top-0 z-50 bg-base-100/90 backdrop-blur border-b border-base-200">
+	<div class="navbar container mx-auto">
+		<div class="navbar-start">
+			<div class="dropdown">
+				<div tabindex="0" role="button" class="btn btn-ghost lg:hidden">
+					<span class="icon-[mdi--menu] text-2xl"></span>
+				</div>
+				<ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52 text-base-content">
+					<li><HeaderLink href={getRelativeLocaleUrl(lang, '/')}>{t('nav.home')}</HeaderLink></li>
+					<li><HeaderLink href={getRelativeLocaleUrl(lang, 'about')}>{t('nav.about')}</HeaderLink></li>
+				</ul>
+			</div>
+            <a href="/" class="flex items-center gap-3 px-2 group no-underline">
+                <img src="/android-chrome-192x192.png" alt="Logo" class="size-8 md:size-10 rounded-lg shadow-sm group-hover:scale-105 transition-transform" />
+                <span class="text-xl font-bold text-primary tracking-tight">{t('site.title')}</span>
+            </a>
+		</div>
+		<div class="navbar-center hidden lg:flex">
+			<ul class="menu menu-horizontal px-1 gap-2 text-base">
+				<li><HeaderLink href={getRelativeLocaleUrl(lang, '/')}>{t('nav.home')}</HeaderLink></li>
+				<li><HeaderLink href={getRelativeLocaleUrl(lang, 'about')}>{t('nav.about')}</HeaderLink></li>
+			</ul>
+		</div>
+		<div class="navbar-end gap-2">
+			{showLangSwitcher && (
+			<div class="join border border-base-300">
+				<a href={getRelativeLocaleUrl('de', Astro.url.pathname.replace(/^\/en/, ''))} class={`join-item btn btn-xs ${lang === 'de' ? 'btn-primary' : 'btn-ghost'}`}>DE</a>
+				<a href={getRelativeLocaleUrl('en', Astro.url.pathname.replace(/^\/en/, ''))} class={`join-item btn btn-xs ${lang === 'en' ? 'btn-primary' : 'btn-ghost'}`}>EN</a>
+			</div>
+			)}
+			<button id="search-btn" class="btn btn-ghost btn-circle tooltip tooltip-bottom" data-tip="Suche">
+				<span class="icon-[mdi--magnify] text-2xl"></span>
+				<span class="sr-only">Suche</span>
+			</button>
+			
+			<a href="https://reisinger.pictures" target="_blank" class="btn btn-ghost btn-circle tooltip tooltip-bottom" data-tip="Portfolio">
+				<span class="icon-[mdi--camera] text-2xl"></span>
+				<span class="sr-only">reisinger.pictures</span>
+			</a>
+			<a href="https://github.com/reisi007" target="_blank" class="btn btn-ghost btn-circle tooltip tooltip-bottom" data-tip="GitHub">
+				<span class="icon-[mdi--github] text-2xl"></span>
+				<span class="sr-only">GitHub</span>
+			</a>
+		</div>
+	</div>
+</header>
+
+<dialog id="search_modal" class="modal modal-bottom sm:modal-middle">
+  <div class="modal-box min-h-[50vh] flex flex-col">
+    <form method="dialog">
+      <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+    </form>
+    <h3 class="font-bold text-lg mb-4">Suchen</h3>
+    <div class="flex-grow">
+        <Search />
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button>Schließen</button>
+  </form>
+</dialog>
+
+<script>
+  document.getElementById('search-btn')?.addEventListener('click', () => {
+    const modal = document.getElementById('search_modal') as HTMLDialogElement | null;
+    if (modal) modal.showModal();
+  });
+</script>

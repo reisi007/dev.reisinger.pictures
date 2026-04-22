@@ -1,0 +1,96 @@
+---
+import { Image } from 'astro:assets';
+import { getCollection } from 'astro:content';
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import FormattedDate from '../components/FormattedDate.astro';
+import { useTranslations, defaultLang, type SupportedLanguage } from '../i18n/ui';
+
+const lang = Astro.currentLocale || defaultLang;
+const t = useTranslations(lang as SupportedLanguage);
+
+const siteTitle = t('site.title');
+const siteDescription = t('site.description');
+
+// Beiträge laden und nach Datum absteigend sortieren
+const posts = (await getCollection('blog')).sort(
+	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+---
+
+<!doctype html>
+<html lang={lang} class="scroll-smooth">
+	<head>
+		<BaseHead title={siteTitle} description={siteDescription} />
+	</head>
+	<body class="min-h-screen flex flex-col bg-base-100 text-base-content selection:bg-primary selection:text-primary-content">
+		<Header />
+		
+		<main class="flex-grow container mx-auto px-4 py-8 lg:py-12 max-w-5xl">
+			<header class="mb-10 border-b border-base-300 pb-8 text-center">
+				<h1 class="text-3xl md:text-5xl font-black mb-4 text-base-content tracking-tight">dev.reisinger.pictures</h1>
+				<p class="text-lg text-base-content/70">
+					{t('site.description')}
+				</p>
+			</header>
+
+			<section>
+				{posts.length === 0 ? (
+					<div class="text-center py-16 bg-base-200/50 rounded-2xl border border-dashed border-base-300">
+						<span class="icon-[mdi--text-box-plus-outline] text-6xl opacity-30 mb-4"></span>
+						<h2 class="text-xl font-bold opacity-70">{t('blog.no_posts')}</h2>
+						<p class="opacity-60 text-sm mt-2">{t('blog.create_first')}</p>
+					</div>
+				) : (
+					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+						{posts.map((post, index) => (
+							<a 
+								href={`/blog/${post.id}/`} 
+								class={`card bg-base-100 border border-base-300 hover:border-primary hover:shadow-xl transition-all duration-300 group flex flex-col overflow-hidden ${index === 0 ? 'md:col-span-2 lg:col-span-3 md:flex-row bg-base-200/30' : ''}`}
+							>
+								{post.data.heroImage && (
+									<figure class={`shrink-0 overflow-hidden ${index === 0 ? 'md:w-3/5 lg:w-2/3 aspect-video md:aspect-auto' : 'aspect-video'}`}>
+										<Image 
+											width={index === 0 ? 1200 : 600} 
+											height={index === 0 ? 675 : 337} 
+											src={post.data.heroImage} 
+											alt={post.data.title} 
+											class="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700" 
+										/>
+									</figure>
+								)}
+								<div class={`card-body flex flex-col justify-center ${index === 0 ? 'md:w-2/5 lg:w-1/3 p-8 lg:p-10' : 'p-6'}`}>
+									<div class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary mb-2">
+										<span class="icon-[mdi--calendar-blank] text-base"></span>
+										<FormattedDate date={post.data.pubDate} />
+									</div>
+									
+									<h3 class={`card-title group-hover:text-primary transition-colors leading-tight mb-3 ${index === 0 ? 'text-2xl md:text-3xl lg:text-4xl font-black' : 'text-xl'}`}>
+										{post.data.title}
+									</h3>
+									
+									{post.data.description && (
+										<p class={`text-base-content/70 line-clamp-3 ${index === 0 ? 'text-lg' : 'text-sm'}`}>
+											{post.data.description}
+										</p>
+									)}
+									
+									{post.data.themen && post.data.themen.length > 0 && (
+										<div class="mt-auto pt-6 flex flex-wrap gap-2">
+											{post.data.themen.map(thema => (
+												<span class="badge badge-neutral badge-sm">{thema}</span>
+											))}
+										</div>
+									)}
+								</div>
+							</a>
+						))}
+					</div>
+				)}
+			</section>
+		</main>
+
+		<Footer />
+	</body>
+</html>

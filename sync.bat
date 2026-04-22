@@ -1,0 +1,1 @@
+rclone sync E:\dev.reisinger.pictures\dist reisinger.pictures:/dev.reisinger.pictures --transfers=128 --track-renames --progress

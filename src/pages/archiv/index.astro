@@ -1,0 +1,33 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const allPosts = await getCollection('blog');
+
+// Jahre extrahieren und Posts zählen
+const yearsMap = new Map<string, number>();
+allPosts.forEach(post => {
+    const year = post.data.pubDate.getFullYear().toString();
+    yearsMap.set(year, (yearsMap.get(year) || 0) + 1);
+});
+
+const sortedYears = Array.from(yearsMap.entries()).sort((a, b) => parseInt(b[0]) - parseInt(a[0]));
+---
+
+<BaseLayout title="Blog Archiv" description="Chronologische Übersicht aller Beiträge">
+    <div class="max-w-4xl mx-auto">
+        <div class="mb-10 border-b border-base-300 pb-6 text-center">
+            <h1 class="text-4xl md:text-5xl font-black text-base-content tracking-tight">Archiv</h1>
+            <p class="text-base-content/70 mt-3">Reise durch die Zeit und entdecke vergangene Beiträge.</p>
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {sortedYears.map(([year, count]) => (
+                <a href={`/archiv/${year}/`} class="card bg-base-200 hover:bg-base-300 hover:shadow-md transition-all text-center p-8">
+                    <span class="text-4xl font-black text-primary">{year}</span>
+                    <span class="text-sm opacity-60 mt-2">{count} Beitrag/Beiträge</span>
+                </a>
+            ))}
+        </div>
+    </div>
+</BaseLayout>
