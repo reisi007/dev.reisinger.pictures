@@ -1,0 +1,38 @@
+---
+import {getCollection, render} from 'astro:content';
+import PageLayout from '../../layouts/PageLayout.astro';
+import StartpageLayout from '../../layouts/StartpageLayout.astro';
+import {computeAllSimpleUrls, getFolder, getSimplePageSlug} from '../../utils/url';
+
+export async function getStaticPaths() {
+    const allPages = await getCollection('simple');
+    const computed = computeAllSimpleUrls(allPages)
+
+    console.log(allPages.map(e => e.id))
+
+    return allPages.map(page => {
+        const lang = page.data.lang === 'en' ? 'en' : undefined;
+        const altLang = page.data.lang === 'de' ? 'en' : 'de';
+        const alternateUrl = computed.get(getFolder(page))?.get(altLang)
+        if (alternateUrl === undefined) throw new Error(`${altLang} not found`);
+
+        return {
+            params: {lang, slug: getSimplePageSlug(page) || "/"},
+            props: {page, alternateUrl},
+        };
+    });
+}
+
+const {page, alternateUrl} = Astro.props;
+const {Content} = await render(page);
+const isHome = page.id === '/';
+---
+{isHome ? (
+<StartpageLayout {...page.data} alternateUrl={alternateUrl}>
+    <Content/>
+</StartpageLayout>
+    ) : (
+<PageLayout {...page.data} alternateUrl={alternateUrl}>
+    <Content/>
+</PageLayout>
+    )}

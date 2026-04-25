@@ -1,0 +1,64 @@
+---
+import { getCollection } from 'astro:content';
+import ResponsiveImage from './ResponsiveImage.astro';
+import FormattedDate from './FormattedDate.astro';
+import { useTranslations, defaultLang, type SupportedLanguage } from '../i18n/ui';
+import {getBlogUrl} from "../utils/url.ts";
+
+interface Props {
+    lang?: string;
+}
+
+const currentLang = Astro.props.lang || Astro.currentLocale || defaultLang;
+const t = useTranslations(currentLang as SupportedLanguage);
+
+const posts = (await getCollection('blog', ({ data }) => data.lang === currentLang))
+    .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+    .slice(0, 6);
+---
+
+<section class="not-prose w-full">
+    {posts.length === 0 ? (
+        <div class="text-center py-16 bg-base-200/50 rounded-2xl border border-dashed border-base-300">
+            <span class="icon-[mdi--text-box-plus-outline] text-6xl opacity-30 mb-4"></span>
+            <h2 class="text-xl font-bold opacity-70">{t('blog.no_posts')}</h2>
+            <p class="opacity-60 text-sm mt-2">{t('blog.create_first')}</p>
+        </div>
+    ) : (
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {posts.map((post, index) => (
+                <a 
+                    href={getBlogUrl(post)}
+                    class={`card bg-base-100 border border-base-300 hover:border-primary hover:shadow-xl transition-all duration-300 group flex flex-col overflow-hidden ${index === 0 ? 'md:col-span-2 lg:col-span-3 md:flex-row bg-base-200/30' : ''}`}
+                >
+                    {post.data.heroImage && (
+                        <figure class={`shrink-0 overflow-hidden ${index === 0 ? 'md:w-3/5 lg:w-2/3 aspect-video md:aspect-auto' : 'aspect-video'}`}>
+                            <ResponsiveImage 
+                                src={post.data.heroImage} 
+                                alt={post.data.title} 
+                                sizes={index === 0 ? "(max-width: 1024px) 100vw, 1024px" : "(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"}
+                                class="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700" 
+                            />
+                        </figure>
+                    )}
+                    <div class={`card-body flex flex-col justify-center ${index === 0 ? 'md:w-2/5 lg:w-1/3 p-8 lg:p-10' : 'p-6'}`}>
+                        <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary mb-2">
+                            <span class="icon-[mdi--calendar-blank] text-base"></span>
+                            <FormattedDate date={post.data.pubDate} />
+                        </div>
+                        
+                        <h3 class={`card-title group-hover:text-primary transition-colors leading-tight mb-3 ${index === 0 ? 'text-2xl md:text-3xl lg:text-4xl font-black' : 'text-xl'}`}>
+                            {post.data.title}
+                        </h3>
+                        
+                        {post.data.description && (
+                            <p class={`text-base-content/70 line-clamp-3 ${index === 0 ? 'text-lg' : 'text-sm'}`}>
+                                {post.data.description}
+                            </p>
+                        )}
+                    </div>
+                </a>
+            ))}
+        </div>
+    )}
+</section>

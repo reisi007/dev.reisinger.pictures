@@ -1,41 +1,34 @@
 import type { CollectionEntry } from 'astro:content';
 
-// Cache for inverted index to ensure O(N) index building and O(1) lookups per tag/thema
 let invertedIndexCache: {
-    themen: Map<string, Set<string>>;
+    thema: Map<string, Set<string>>;
     tags: Map<string, Set<string>>;
 } | null = null;
 
 function buildIndex(allPosts: CollectionEntry<'blog'>[]) {
     if (invertedIndexCache) return invertedIndexCache;
 
-    const themen = new Map<string, Set<string>>();
+    const thema = new Map<string, Set<string>>();
     const tags = new Map<string, Set<string>>();
 
     for (const post of allPosts) {
-        post.data.themen?.forEach(t => {
-            if (!themen.has(t)) themen.set(t, new Set());
-            themen.get(t)!.add(post.id);
-        });
-        post.data.tags?.forEach(t => {
-            if (!tags.has(t)) tags.set(t, new Set());
-            tags.get(t)!.add(post.id);
+        const t = post.data.thema?.id;
+        if (t) {
+            if (!thema.has(t)) thema.set(t, new Set());
+            thema.get(t)!.add(post.id);
+        }
+
+        post.data.tags?.forEach(tagRef => {
+            const tag = tagRef.id;
+            if (!tags.has(tag)) tags.set(tag, new Set());
+            tags.get(tag)!.add(post.id);
         });
     }
 
-    invertedIndexCache = { themen, tags };
+    invertedIndexCache = { thema, tags };
     return invertedIndexCache;
 }
 
-/**
- * Calculates and returns a list of related posts based on shared 'themen' and 'tags'.
- * 'Themen' have a higher weight (2 points) than 'tags' (1 point).
- * * Uses a memoized inverted index for performance optimization during SSG builds.
- * * @param currentPost The post currently being viewed.
- * @param allPosts Array of all available blog posts.
- * @param maxPosts Maximum number of related posts to return (default: 3).
- * @returns Array of sorted, related CollectionEntries.
- */
 export function getRelatedPosts(
     currentPost: CollectionEntry<'blog'>,
     allPosts: CollectionEntry<'blog'>[],
@@ -44,29 +37,29 @@ export function getRelatedPosts(
     const index = buildIndex(allPosts);
     const scores = new Map<string, number>();
 
-    // Calculate scores using the inverted index (O(1) lookups)
-    currentPost.data.themen?.forEach(thema => {
-        index.themen.get(thema)?.forEach(postId => {
-            if (postId !== currentPost.id) {
-                scores.set(postId, (scores.get(postId) || 0) + 2);
-            }
+    const currentThema = currentPost.data.thema?.id;
+    if (currentThema) {
+        index.thema.get(currentThema)?.forEach(postId => {
+            scores.set(postId, (scores.get(postId) || 0) + 2);
+        });
+    }
+
+    currentPost.data.tags?.forEach(tagRef => {
+        index.tags.get(tagRef.id)?.forEach(postId => {
+            scores.set(postId, (scores.get(postId) || 0) + 1);
         });
     });
 
-    currentPost.data.tags?.forEach(tag => {
-        index.tags.get(tag)?.forEach(postId => {
-            if (postId !== currentPost.id) {
-                scores.set(postId, (scores.get(postId) || 0) + 1);
-            }
-        });
-    });
+    // Bombensicherer Filter: Den aktuellen Post anhand seiner ID aus den Ergebnissen löschen
+    scores.delete(currentPost.id);
 
-    // Map scores back to posts, filter > 0, and sort
     const related = Array.from(scores.entries())
         .map(([id, score]) => ({
             post: allPosts.find(p => p.id === id)!,
             score
         }))
+        // HIER IST DER FIX: Fallback falls Post nicht gefunden UND zwingender Sprachfilter
+        .filter(item => item.post !== undefined && item.post.data.lang === currentPost.data.lang)
         .sort((a, b) => {
             if (b.score !== a.score) return b.score - a.score;
             return b.post.data.pubDate.valueOf() - a.post.data.pubDate.valueOf();

@@ -1,0 +1,31 @@
+---
+import {getCollection, render} from 'astro:content';
+import BlogPost from '../../layouts/BlogPost.astro';
+import RelatedPosts from '../../components/RelatedPosts.astro';
+import {computeAllBlogUrls, getBlogSlug, getFolder} from '../../utils/url';
+
+export async function getStaticPaths() {
+    const allPosts = await getCollection('blog');
+
+    const computed = computeAllBlogUrls(allPosts)
+
+    return allPosts.map((post) => {
+        const lang = post.data.lang === 'en' ? 'en' : undefined;
+        const altLang = post.data.lang === 'de' ? 'en' : 'de';
+        const alternateUrl = computed.get(getFolder(post))?.get(altLang)
+        if (alternateUrl === undefined) throw new Error(`${altLang} not found`);
+
+        return {
+            params: {lang, blog: getBlogSlug(post)},
+            props: {post, alternateUrl},
+        };
+    });
+}
+
+const {post, alternateUrl} = Astro.props;
+const {Content} = await render(post);
+---
+<BlogPost {...post.data} alternateUrl={alternateUrl}>
+    <Content/>
+    <RelatedPosts currentPost={post}/>
+</BlogPost>

@@ -1,20 +1,20 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { getCollection } from 'astro:content';
 import { getRelativeLocaleUrl } from 'astro:i18n';
 
 const allTags = await getCollection('tags');
 const allPosts = await getCollection('blog');
-const currentLang = 'de';
-const alternateUrl = getRelativeLocaleUrl('en', 'tags/');
+const currentLang = 'en';
+const alternateUrl = getRelativeLocaleUrl('de', 'tags/');
 
 const sortedTags = allTags.sort((a, b) => a.data[currentLang].name.localeCompare(b.data[currentLang].name));
 ---
-<BaseLayout title="Alle Tags" alternateUrl={alternateUrl}>
+<BaseLayout title="All Tags" alternateUrl={alternateUrl}>
     <div class="max-w-4xl mx-auto">
         <div class="mb-10 border-b border-base-300 pb-6 text-center">
             <h1 class="text-4xl md:text-5xl font-black text-base-content tracking-tight">Tags</h1>
-            <p class="text-base-content/70 mt-3">Alle Stichwörter auf einen Blick.</p>
+            <p class="text-base-content/70 mt-3">All tags at a glance.</p>
         </div>
         <div class="flex flex-wrap justify-center gap-3">
             {sortedTags.map(tag => {

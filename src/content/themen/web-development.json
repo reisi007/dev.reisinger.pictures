@@ -1,0 +1,11 @@
+{
+  "id": "web-development",
+  "de": {
+    "name": "Webentwicklung",
+    "slug": "webentwicklung"
+  },
+  "en": {
+    "name": "Web Development",
+    "slug": "web-development"
+  }
+}

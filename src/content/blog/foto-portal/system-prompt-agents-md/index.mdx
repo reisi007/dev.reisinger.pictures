@@ -1,0 +1,83 @@
+---
+title: "Das Reisinger Foto-Portal: Architektur, Features & mein ultimativer Gemini KI-Workflow"
+slug: "foto-portal/architektur-und-gemini-workflow"
+description: "Der Startschuss für portal.reisinger.pictures. In diesem umfassenden Beitrag zeige ich die Features des Portals und meinen KI-Workflow mit Gemini Pro 3.1, RepoMix und meiner strikten AGENTS.md."
+pubDate: "2026-04-25"
+thema: "ki-entwicklung"
+tags: ["gemini-pro", "playwright", "repomix", "doc-as-code"]
+lang: "de"
+heroImage: "./hero.png"
+---
+
+Willkommen zum Entwicklungs-Tagebuch meines neuen Foto-Portals, erreichbar unter [portal.reisinger.pictures](https://portal.reisinger.pictures). In diesem Jahr nehme ich euch Schritt für Schritt bei der Entstehung mit. 
+
+Statt die Entwicklung über mehrere kleine Beiträge zu streuen, gibt es heute den großen Deep-Dive: Was soll das System fachlich können, wie bändige ich eine 300.000-Token-Codebasis mit Google Gemini Pro 3.1, und wie zwinge ich die KI durch harte Regeln dazu, sauberen Code zu schreiben?
+
+## Was wird das Foto-Portal können? (Der Feature-Umfang)
+
+Das System wird weit mehr als eine einfache Galerie. Es ist ein hochgradig angepasstes Portal mit verschiedenen Berechtigungsstufen (Super Admin, Power User, Customer und Guest) und komplexer Business-Logik, die Baukasten-Systeme schlichtweg nicht abbilden können.
+
+Einige der Kernfunktionen:
+* **Monetarisierung & Upselling:** Kunden können Einzelbilder kaufen oder Flatrates buchen. Die Logik dahinter ist smart: Wenn jemand eine Flatrate für redaktionelle Nutzung besitzt, die Bilder aber für Werbung nutzen möchte, greift eine Upselling-Logik, und der Kunde zahlt nur die Differenz.
+* **Flexibles Billing:** Die Rechnungslegung (z. B. pro Kopf) lässt sich individuell auf monatliche oder quartalsweise Abrechnung einstellen.
+* **Live- & Bewertungs-Galerien:** Für Schul-Events oder ähnliche Veranstaltungen gibt es Live-Galerien, die sich alle paar Sekunden automatisch aktualisieren, ohne dass die Seite neu geladen werden muss. Zudem gibt es Bewertungs-Galerien, in denen Kunden für Bilder abstimmen können.
+* **Hintergrund-Jobs:** Das Generieren von ZIP-Archiven für den Download ganzer Alben oder der E-Mail-Versand laufen als asynchrone Background-Tasks.
+* **Privatsphäre & Downloads:** Es gibt private Alben, bei denen Kunden spezifisch berechtigt werden können, alle Bilder auf einmal herunterzuladen.
+
+Um die Stabilität dieses komplexen Systems zu gewährleisten, setze ich extrem stark auf Testing. Aktuell laufen fast 100 Playwright End-to-End-Tests. Da diese jeweils für Mobile und Desktop durchlaufen, sprechen wir von knapp 200 Test-Ausführungen bei jedem Durchlauf, die sicherstellen, dass die Kern-Workflows fehlerfrei bleiben.
+
+## Mein Setup: Google Gemini Pro 3.1 & RepoMix
+
+Mein KI-Setup unterscheidet sich vom Standard. Ich nutze ausschließlich die Web-Oberfläche von Google Gemini Pro 3.1 in Kombination mit einem Google Workspace-Abo. Die Limits sind hier enorm großzügig, und falls es doch mal eng wird, kann man das Limit für rund 15 € unkompliziert anheben.
+
+Das eigentliche Geheimnis meines Workflows ist aber **RepoMix**.
+
+Das Workspace-Abo rechnet nicht nach Tokens ab, sondern nach der *Anzahl der Nachrichten*. Um das Maximum herauszuholen, muss man so viel Kontext wie möglich in einen einzigen Prompt packen. Das Foto-Portal hat aktuell eine Größe von ca. 300.000 Tokens – was für das 1-Millionen-Token Kontextfenster von Gemini überhaupt kein Problem ist. 
+
+Mit RepoMix bündle ich die gesamte Codebasis in ein einziges Textfeld und kopiere es in die Web-UI. Gemini hat somit das komplette, aktuelle Wissen über das System in einer einzigen Nachricht.
+
+## Die Agenten-Architektur: Planner, Maker, Checker & Reviewer
+
+Da ich ohne IDE-Plugins arbeite, kommuniziert Gemini über `.mjs` Patch-Scripts mit mir, die ich lokal ausführe. Um das zu strukturieren, habe ich das System in vier strikte Rollen unterteilt:
+
+1. **Der Planner:** Schreibt To-Do-Listen und plant die Architektur. Alles muss im `features/`-Ordner dokumentiert werden.
+2. **Der Maker:** Hakt die To-Dos ab, schreibt menschenlesbaren Code und generiert die `.mjs` Patch-Scripts.
+3. **Der Checker:** Verifiziert Konzepte und schreibt Playwright E2E-Tests. Schlägt ein Test fehl, leite ich den Output über mein Custom-Utility direkt zurück an Gemini.
+4. **Der Code Reviewer:** Er kombiniert Reviews und Code-Verbesserungen in einer Nachricht. Er achtet penibel auf Sicherheit und sauberen Code und verhindert rigoros eine Verwässerung der Architektur durch neue Features.
+
+## Mein ultimativer System Prompt: AGENTS.md
+
+Reiner Kontext reicht nicht aus – man braucht unumstößliche Regeln. Ich zwinge die KI in einen strukturierten Prozess, der schlampiges TypeScript (`@ts-ignore` ist streng verboten!) unterbindet und verlangt, dass Patches vor dem Ausführen den Zielcode validieren (*Safe Patching Policy*). Ebenso darf Playwright nie direkt aufgerufen werden, sondern immer über meinen `ai_test_runner.mjs`, damit die KI die generierten Fehlerberichte lesen kann.
+
+Hier ist das Master-Dokument, das ich der KI bei jeder Session mitgebe:
+
+```markdown
+# AI Operating Guidelines & Doc-as-Code Policy
+
+**CRITICAL ROLE:** Behandle den Benutzer bei allen Antworten und technischen Entscheidungen vom Fachwissen her wie einen Senior Architekten. Die direkte Anrede "Senior Architekt" ist jedoch untersagt.
+
+## 1. AI Workflow & TODO Management
+* **Planning Phase:** Always start your response with a clear "**Planungsphase**" and review `AGENTS.todo.md`.
+* **Language Policy:** Code & Docs: English. UI: German.
+* **Documentation (SOLL-ZUSTAND REQUIRED):** The single source of truth for all technical concepts is the `features/` directory. BEFORE implementing any new logic, the target state (Soll-Zustand) MUST be thoroughly documented in a corresponding Markdown file under `features/`.
+* **Task & Test Tracking:** Every feature requires actionable TODOs in `AGENTS.todo.md`. You MUST explicitly include TODOs for writing test cases (PHPUnit for backend, Playwright for E2E).
+
+## 2. AI Operating Rules (STRICT)
+* **ESLint & TypeScript:** The use of `eslint-disable`, `@ts-ignore`, or `any` is **strictly forbidden**. All typing issues must be resolved structurally using exact interfaces, `unknown`, or generic type constraints.
+* **Testing Execution Output:** Whenever you create or modify E2E or PHPUnit tests, you MUST output the exact command to run them (and the input string for the `ai_test_runner.mjs`) in a separate code block at the end of your response.
+* **Test Debugging Transparency:** When analyzing test failure reports, you must explicitly document your debugging progress and thought process in the "Planungsphase" before proposing a fix. Explain what failed, why it failed based on the logs/DOM snapshots, and how the fix addresses the root cause.
+* **Patching & File Modification (CRITICAL):**
+  * Multi-line Regex for search-and-replace in code is STRICTLY FORBIDDEN. It is too brittle.
+  * Base64 output for file content is STRICTLY FORBIDDEN.
+  * **Safe Patching Policy (CRITICAL):** Alle `patch.mjs` Scripts MÜSSEN den Erfolg einer Ersetzung validieren. Prüfe zwingend mit `.includes()` oder `.indexOf()`, ob der Zielstring existiert, *bevor* du `.replace()` aufrufst. Prüfe danach, ob sich der `content` tatsächlich verändert hat. Brich mit einer klaren `console.error` ab, falls der Patch ins Leere läuft. Blinde `.replace()` Aufrufe sind untersagt!
+
+## 3. AI Agent Roles & Responsibilities
+The system and workflow are managed via four strictly separated agent roles (Planner, Maker, Checker, Reviewer).
+* **Planner:** Analyzes the problem, designs the architecture/solution, documents the requirements in the `features/` folder, and creates tasks in `AGENTS.todo.md`.
+* **Maker:** Reads the planning and strictly implements the changes in code (e.g., generates `patch.mjs` scripts). The Maker must **never** independently remove items from `AGENTS.todo.md`. Also update the documents in the `features/` folder and add tasks in `AGENTS.todo.md` as needed. 
+* **Checker:** Verifies the Maker's changes against the Definition of Done (DoD) and runs tests. Only when all tests pass and the quality is met is the Checker allowed to close and remove the corresponding TODOs in `AGENTS.todo.md`.
+* **Reviewer:** Conducts thorough code reviews, ensures security, enforces architectural integrity, and outputs feedback + patches combined to save messages.
+* **Testing Execution Rule (STRICT):** Nie Playwright direkt aufrufen (z.B. `npx playwright test`), sondern immer zwingend via `node ai_test_runner.mjs`! Dies stellt sicher, dass Fehler-Reports für die Analyse generiert werden.
+```
+
+Dieser Workflow mag anfangs aufwendig erscheinen, aber er ist der Hauptgrund, warum ich selbst komplexe Features rasant und stabil entwickeln kann. Im nächsten Beitrag schauen wir uns an, wie sich die Architektur im Detail im Code widerspiegelt. Bleibt dran!

@@ -8,7 +8,7 @@ status: done
 
 ## 🛠 SOLL-Zustand (Target State)
 Der Blog bietet eine rasend schnelle, lokale Textsuche basierend auf [Pagefind](https://pagefind.app/). 
-Die Suche öffnet sich als modales Fenster (DaisyUI) global aus dem Header heraus.
+Die Suche ist direkt als Inline-Eingabefeld im Header integriert. Die Ergebnisse werden absolut positioniert als Dropdown über dem restlichen Content angezeigt.
 
 ### Build-Prozess & Indizierung
 - Pagefind ist ein Post-Build-Schritt. Der `build`-Befehl in der `package.json` führt zuerst `astro build` aus und jagt danach die Pagefind-CLI über das `dist/` Verzeichnis.

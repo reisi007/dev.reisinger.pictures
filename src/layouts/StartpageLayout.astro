@@ -1,0 +1,18 @@
+---
+import BaseLayout from './BaseLayout.astro';
+
+interface Props {
+    title: string;
+    description?: string;
+    alternateUrl?: string;
+}
+
+const { title, description, alternateUrl } = Astro.props;
+---
+<BaseLayout title={title} description={description} alternateUrl={alternateUrl}>
+    <header class="mb-10 border-b border-base-300 pb-8 text-center">
+        <h1 class="text-3xl md:text-5xl font-black mb-4 text-base-content tracking-tight">{title}</h1>
+        {description && <p class="text-lg text-base-content/70">{description}</p>}
+    </header>
+    <slot />
+</BaseLayout>

@@ -1,21 +1,26 @@
-import { defineCollection} from 'astro:content';
+import { defineCollection, reference } from 'astro:content';
 import { z } from 'astro/zod';
 import { glob } from 'astro/loaders';
 
+const taxonomySchema = z.object({
+  de: z.object({ name: z.string(), slug: z.string() }),
+  en: z.object({ name: z.string(), slug: z.string() }),
+});
+
 const blog = defineCollection({
-  // Erlaubt das Finden von Dateien in Unterordnern (z.B. blog/mein-post/index.md)
   loader: glob({ base: './src/content/blog', pattern: '**/*.{md,mdx}' }),
   schema: ({ image }) => z.object({
+    slug: z.string().optional(),
     title: z.string(),
     description: z.string().optional(),
     pubDate: z.coerce.date(),
     updatedDate: z.coerce.date().optional(),
     heroImage: image().optional(),
-    themen: z.array(z.string()).default([]),
-    tags: z.array(z.string()).default([]),
+    thema: reference('themen'),
+    tags: z.array(reference('tags')).default([]),
+    lang: z.enum(['de', 'en']).default('de'),
   }),
 });
-
 
 const simple = defineCollection({
   loader: glob({ base: './src/content/simple', pattern: '**/*.{md,mdx}' }),
@@ -27,5 +32,14 @@ const simple = defineCollection({
   }),
 });
 
+const themen = defineCollection({
+  loader: glob({ base: './src/content/themen', pattern: '**/*.json' }),
+  schema: taxonomySchema
+});
 
-export const collections = { blog, simple };
+const tags = defineCollection({
+  loader: glob({ base: './src/content/tags', pattern: '**/*.json' }),
+  schema: taxonomySchema
+});
+
+export const collections = { blog, simple, themen, tags };

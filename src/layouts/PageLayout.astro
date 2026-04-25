@@ -1,18 +1,18 @@
 ---
 import BaseLayout from './BaseLayout.astro';
-import { Image } from 'astro:assets';
+import ResponsiveImage from '../components/ResponsiveImage.astro';
 import type { CollectionEntry } from 'astro:content';
 
-type Props = CollectionEntry<'simple'>['data'];
+type Props = CollectionEntry<'simple'>['data'] & { alternateUrl?: string };
 
-const { title, description, heroImage } = Astro.props;
+const { title, description, heroImage, alternateUrl } = Astro.props;
 ---
 
-<BaseLayout title={title} description={description} image={heroImage?.src}>
+<BaseLayout title={title} description={description} image={heroImage?.src} alternateUrl={alternateUrl}>
     <article>
         {heroImage && (
             <div class="w-full mb-8">
-                <Image width={1020} height={510} src={heroImage} alt="" class="block mx-auto rounded-xl shadow-lg object-cover w-full aspect-video" />
+                <ResponsiveImage src={heroImage} sizes="(max-width: 1024px) 100vw, 1020px" loading="eager" class="block mx-auto rounded-xl shadow-lg object-cover w-full aspect-video" />
             </div>
         )}
         <div class="max-w-3xl mx-auto">

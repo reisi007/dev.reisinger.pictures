@@ -11,9 +11,10 @@
 ## 2. Architektur: Doc-as-Code & Standard Astro
 * **Code:** Wir nutzen die klassische Astro-Struktur (`src/components/`, `src/layouts/`, `src/pages/`).
 * **Tech-Stack:** Astro (SSG), Tailwind 4 via Vite-Plugin, DaisyUI, Iconify.
-* **Inhalt:** MDX in Page-Bundles (Ordner pro Beitrag).
+* **Inhalt:** MDX in Page-Bundles (Ordner pro Beitrag). Normale, statische Einzelseiten (wie "Über mich" oder "Impressum") MÜSSEN zwingend über die `simple` Content Collection angelegt werden, statt sie als `.astro`-Dateien in `src/pages/` zu programmieren.
 
 ## 3. AI Operating Rules (STRICT)
+* **CSS & Styling (STRICT):** Styling via `<style>`-Tags in `.astro` Dateien ist streng verboten! Jegliches CSS MUSS zentral in `src/styles/global.css` definiert werden. Dort gilt weiterhin: Manuelles Schreiben von reinen CSS-Eigenschaften ist verboten. Nutze zwingend Tailwinds `@apply`-Direktive (z.B. `@apply mt-2 text-red-500;`). Die einzige Ausnahme ist die Deklaration von nativen CSS-Variablen (z.B. für Theming).
 * **ESLint & TypeScript:** The use of `eslint-disable`, `@ts-ignore`, or `any` is **strictly forbidden**. All typing issues must be resolved structurally using exact interfaces, `unknown`, or generic type constraints.
 * **Testing Execution Output:** Whenever you create or modify tests, you MUST output the exact command to run them in a separate code block at the end of your response.
 * **Test Debugging Transparency:** When analyzing test failure reports, you must explicitly document your debugging progress and thought process in the "Planungsphase" before proposing a fix. Explain what failed, why it failed, and how the fix addresses the root cause.
@@ -22,6 +23,9 @@
   * Base64 output for file content is STRICTLY FORBIDDEN.
   * **Safe Patching Policy:** Alle `.mjs` Scripts zur Dateimanipulation MÜSSEN den Erfolg einer Ersetzung validieren. Prüfe zwingend mit `.includes()` oder `.indexOf()`, ob der Zielstring existiert, *bevor* du `.replace()` aufrufst. Prüfe danach, ob sich der `content` tatsächlich verändert hat. Brich mit einer klaren `console.error` ab, falls der Patch ins Leere läuft. Blinde `.replace()` Aufrufe sind untersagt! 
   * **Fallback:** Wenn die teilweise Ersetzung fehlschlägt, MUSS das Skript als Fallback die gesamte Datei überschreiben, um fehlerhafte Zustände zu vermeiden.
+* **Astro SSG Root-Routing Ausnahme (CRITICAL):** Entgegen der offiziellen Astro-Dokumentation, die `undefined` für den Root-Pfad bei Rest-Parametern vorsieht, benötigt dieses spezifische Projekt-Setup zwingend den String `"/"`, damit die `index.html` für die Startseite im Build korrekt generiert wird. Bei dynamischen Routen wie `[...lang]/[...slug].astro` muss für leere Slugs (die Root-Startseite) daher immer `slug: "/"` übergeben werden. Die Verwendung von `undefined` für leere Slugs ist untersagt.
+
+* **Single Patch Script Policy (CRITICAL):** Liefere immer ein einziges, großes Node-Skript (z.B. `patch.mjs`), das alle notwendigen Dateiänderungen projektweit gebündelt durchführt, anstatt mehrere kleine Skripte zu splitten.
 
 ## 4. AI Agent Roles & Responsibilities
 The system and workflow are managed via three strictly separated agent roles:

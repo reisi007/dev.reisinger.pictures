@@ -16,6 +16,9 @@ export const ui = {
     'footer.rights': 'Alle Rechte vorbehalten.',
     'site.title': 'dev.reisinger.pictures',
     'site.description': 'Mein persönlicher Blog über Webentwicklung, Architektur und Technologie.',
+    'route.themen': 'themen',
+    'route.tags': 'tags',
+    'route.archiv': 'archiv',
   },
   en: {
     'nav.home': 'Home',
@@ -27,14 +30,14 @@ export const ui = {
     'footer.rights': 'All rights reserved.',
     'site.title': 'dev.reisinger.pictures',
     'site.description': 'My personal blog about web development, architecture, and technology.',
+    'route.themen': 'topics',
+    'route.tags': 'tags',
+    'route.archiv': 'archive',
   },
 } as const;
 
 export type SupportedLanguage = keyof typeof ui;
 
-/**
- * Hilfsfunktion zum Abrufen von Übersetzungen basierend auf der aktuellen Sprache.
- */
 export function useTranslations(lang: SupportedLanguage) {
   return function t(key: keyof typeof ui[typeof defaultLang]) {
     return ui[lang][key] || ui[defaultLang][key];
