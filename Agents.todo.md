@@ -3,6 +3,11 @@
 Dieses Dokument trackt den Fortschritt des Blog-Projekts auf dev.reisinger.pictures.
 
 ## ✅ Abgeschlossene Aufgaben
+- [x] **TODO:** Bugfix: ResponsiveImage generiert nun korrekte JPGs und reicht data-pagefind-meta weiter. SEO og:image wird nun über getImage() auf 1200px JPG optimiert.
+- [x] **TODO:** Search: Layout-Optimierung für Ergebnisse ohne Bild (Full-Width) und verbessertes Bild-Indexing via Pagefind-Meta.
+- [x] **TODO:** Search: Dev-Middleware in astro.config.mjs erweitert, um statisch gebaute Bilder (/_astro/) für Pagefind-Thumbnails bereitzustellen.
+- [x] **TODO:** Search UX: Keyboard-Navigation (Arrow Keys & Enter) für Pagefind-Dropdown implementiert.
+- [x] **TODO:** Refactoring: Pagefind-Integration von vorkonfiguriertem UI auf native JS API umgestellt (DaisyUI Integration).
 - [x] **Setup:** Astro-Basisprojekt mit PNPM, Tailwind 4 (Vite) und DaisyUI initialisiert.
 - [x] **Architektur:** Doc-as-Code-Struktur (`docs/`, `AGENTS.md`) und Standard-Astro-Komponentenstruktur etabliert.
 - [x] **Tooling:** IntelliJ Run-Konfigurationen erstellt und Repomix (TS-Config) für KI-Kontext integriert.

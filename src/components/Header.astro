@@ -13,8 +13,6 @@ const lang = Astro.currentLocale || "not found";
 const t = useTranslations(lang as SupportedLanguage);
 const currentPath = Astro.url.pathname;
 
-console.log(lang)
-
 const deUrl = lang === 'de' ? currentPath : alternateUrl;
 const enUrl = lang === 'en' ? currentPath : alternateUrl;
 ---

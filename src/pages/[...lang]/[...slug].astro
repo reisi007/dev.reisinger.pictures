@@ -8,8 +8,6 @@ export async function getStaticPaths() {
     const allPages = await getCollection('simple');
     const computed = computeAllSimpleUrls(allPages)
 
-    console.log(allPages.map(e => e.id))
-
     return allPages.map(page => {
         const lang = page.data.lang === 'en' ? 'en' : undefined;
         const altLang = page.data.lang === 'de' ? 'en' : 'de';

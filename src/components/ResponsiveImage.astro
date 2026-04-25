@@ -9,6 +9,8 @@ interface Props {
     widths?: number[];
     sizes?: string;
     loading?: 'lazy' | 'eager';
+    format?: 'webp' | 'jpg' | 'png' | 'avif';
+    [key: string]: any; // Erlaubt beliebige zusätzliche Attribute wie data-pagefind-meta
 }
 
 const {
@@ -17,7 +19,9 @@ const {
     class: classNames,
     widths = [400, 800, 1200, 1920],
     sizes = '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 1200px',
-    loading = 'lazy'
+    loading = 'lazy',
+    format = 'webp',
+    ...rest // Fängt alle restlichen Attribute ab
 } = Astro.props;
 ---
 
@@ -27,7 +31,8 @@ const {
     class={classNames}
     widths={widths}
     sizes={sizes}
-    format="webp"
+    format={format}
     quality="mid"
     loading={loading}
+    {...rest}
 />

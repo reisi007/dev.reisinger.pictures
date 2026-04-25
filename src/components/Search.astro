@@ -1,42 +1,226 @@
 ---
-// Pagefind UI Styles
 ---
 
-<div id="search-container" class="w-full">
-    <div id="search" class="w-full"></div>
+<div class="relative w-full ml-2 mr-4" id="custom-search-container">
+    <label class="input input-bordered flex items-center gap-2 bg-base-200 focus-within:outline-primary w-full transition-colors">
+        <span class="icon-[mdi--magnify] text-xl opacity-70"></span>
+        <input type="text" id="search-input" class="grow bg-transparent" placeholder="Suchen..." autocomplete="off" />
+        <button id="search-clear" class="btn btn-ghost btn-circle btn-xs hidden" aria-label="Suche leeren">
+            <span class="icon-[mdi--close] text-base"></span>
+        </button>
+    </label>
+
+    <div id="search-results-container" class="absolute top-[calc(100%+0.5rem)] right-0 w-[calc(100vw-2rem)] sm:w-[100vw] max-w-[600px] bg-base-100 border border-base-300 rounded-box shadow-2xl p-2 max-h-[70vh] overflow-y-auto z-[100] hidden">
+        <ul id="search-results-list" class="w-full p-0"></ul>
+        <div id="search-loading" class="text-center p-6 hidden">
+            <span class="loading loading-spinner loading-md text-primary"></span>
+        </div>
+        <div id="search-empty" class="text-center p-6 text-base-content/70 hidden">
+            Keine Ergebnisse gefunden.
+        </div>
+    </div>
 </div>
 
-<script is:inline>
-    // Dynamischer Ladevorgang, damit der Dev-Server nicht abstürzt, wenn Pagefind noch nicht gebaut wurde
-    window.addEventListener('DOMContentLoaded', () => {
-        const initPagefind = async () => {
-            try {
-                // Lade CSS
-                const link = document.createElement('link');
-                link.rel = 'stylesheet';
-                link.href = '/pagefind/pagefind-ui.css';
-                document.head.appendChild(link);
+<script>
+    interface PagefindResult {
+        url: string;
+        meta: {
+            image?: string;
+            title?: string;
+        };
+        excerpt: string;
+    }
 
-                // Lade JS
-                const script = document.createElement('script');
-                script.src = '/pagefind/pagefind-ui.js';
-                script.onload = () => {
-                    if (window.PagefindUI) {
-                        new window.PagefindUI({
-                            element: "#search",
-                            showSubResults: true,
-                            showImages: false,
-                            resetStyles: false // Erlaubt uns, das CSS leicht via Tailwind/Global zu überschreiben
-                        });
-                    }
-                };
-                document.head.appendChild(script);
+    interface PagefindSearchResponse {
+        results: {
+            data: () => Promise<PagefindResult>;
+        }[];
+    }
+
+    interface PagefindInstance {
+        options: (opts: { excerptLength: number }) => Promise<void>;
+        init: () => void;
+        search: (query: string) => Promise<PagefindSearchResponse>;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const input = document.getElementById('search-input') as HTMLInputElement | null;
+        const clearBtn = document.getElementById('search-clear') as HTMLButtonElement | null;
+        const resultsContainer = document.getElementById('search-results-container') as HTMLDivElement | null;
+        const resultsList = document.getElementById('search-results-list') as HTMLUListElement | null;
+        const loadingIndicator = document.getElementById('search-loading') as HTMLDivElement | null;
+        const emptyIndicator = document.getElementById('search-empty') as HTMLDivElement | null;
+        const container = document.getElementById('custom-search-container') as HTMLDivElement | null;
+
+        if (!input || !clearBtn || !resultsContainer || !resultsList || !loadingIndicator || !emptyIndicator || !container) {
+            return; // Early return for null safety
+        }
+
+        let pagefind: PagefindInstance | null = null;
+        let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+        let selectedIndex = -1;
+
+        const initPagefind = async () => {
+            if (pagefind) return;
+            try {
+                pagefind = await import(/* @vite-ignore */ window.location.origin + '/pagefind/pagefind.js') as PagefindInstance;
+                await pagefind.options({ excerptLength: 15 });
+                pagefind.init();
             } catch (e) {
-                console.warn('Pagefind konnte nicht geladen werden. Läuft der Dev-Server ohne vorherigen Build?', e);
+                console.warn('Pagefind JS konnte nicht geladen werden.', e);
             }
         };
 
-        // Nur initialisieren, wenn das Modal geöffnet wird oder wir nicht im Dev-Mode Fehler provozieren wollen
-        initPagefind();
+        const updateSelection = () => {
+            const items = resultsList.querySelectorAll('a');
+            items.forEach((item, index) => {
+                if (index === selectedIndex) {
+                    item.classList.add('bg-base-300', 'ring-2', 'ring-primary', 'ring-inset');
+                    item.classList.remove('bg-base-100', 'hover:bg-base-200');
+                    item.scrollIntoView({ block: 'nearest' });
+                } else {
+                    item.classList.remove('bg-base-300', 'ring-2', 'ring-primary', 'ring-inset');
+                    item.classList.add('hover:bg-base-200');
+                }
+            });
+        };
+
+        const performSearch = async (query: string) => {
+            selectedIndex = -1;
+
+            if (!query.trim()) {
+                resultsContainer.classList.add('hidden');
+                clearBtn.classList.add('hidden');
+                return;
+            }
+
+            clearBtn.classList.remove('hidden');
+            resultsContainer.classList.remove('hidden');
+            resultsList.innerHTML = '';
+            emptyIndicator.classList.add('hidden');
+            loadingIndicator.classList.remove('hidden');
+
+            await initPagefind();
+
+            if (!pagefind) {
+                loadingIndicator.classList.add('hidden');
+                emptyIndicator.textContent = 'Suche im Dev-Modus erst nach dem ersten Build verfügbar.';
+                emptyIndicator.classList.remove('hidden');
+                return;
+            }
+
+            const search = await pagefind.search(query);
+            const results = await Promise.all(search.results.slice(0, 15).map(r => r.data()));
+
+            loadingIndicator.classList.add('hidden');
+
+            if (results.length === 0) {
+                emptyIndicator.textContent = 'Keine Ergebnisse gefunden.';
+                emptyIndicator.classList.remove('hidden');
+                return;
+            }
+
+            results.forEach(result => {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = result.url;
+                a.className = 'search-result-item flex flex-row items-start gap-4 p-3 hover:bg-base-200 transition-colors rounded-xl mb-1 no-underline outline-none';
+                
+                if (result.meta.image && !result.meta.image.includes('android-chrome')) {
+                    const imgWrap = document.createElement('figure');
+                    imgWrap.className = 'shrink-0 w-24 h-16 sm:w-32 sm:h-20 rounded-xl overflow-hidden bg-base-300 shadow-sm border border-base-300';
+                    const img = document.createElement('img');
+                    img.src = result.meta.image;
+                    img.alt = result.meta.title || '';
+                    img.className = 'w-full h-full object-cover';
+                    imgWrap.appendChild(img);
+                    a.appendChild(imgWrap);
+                } else {
+                    a.classList.add('no-image');
+                }
+                
+                const textWrap = document.createElement('div');
+                textWrap.className = 'flex flex-col flex-1 min-w-0 justify-center h-full gap-1';
+
+                const title = document.createElement('span');
+                title.className = 'font-bold text-primary text-base sm:text-lg leading-tight';
+                title.textContent = result.meta.title || 'Ohne Titel';
+                
+                const excerpt = document.createElement('span');
+                excerpt.className = 'text-xs sm:text-sm text-base-content/70 line-clamp-2 leading-relaxed';
+                
+                const sanitizeHTML = (str: string) => {
+                    const temp = document.createElement('div');
+                    temp.textContent = str;
+                    return temp.innerHTML.replace(/&lt;mark&gt;/g, '<mark>').replace(/&lt;\/mark&gt;/g, '</mark>');
+                };
+                excerpt.innerHTML = sanitizeHTML(result.excerpt);
+
+                textWrap.appendChild(title);
+                textWrap.appendChild(excerpt);
+                a.appendChild(textWrap);
+                li.appendChild(a);
+                resultsList.appendChild(li);
+            });
+        };
+
+        input.addEventListener('keydown', (e: KeyboardEvent) => {
+            const items = resultsList.querySelectorAll('a');
+            if (resultsContainer.classList.contains('hidden') || items.length === 0) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedIndex = (selectedIndex + 1) % items.length;
+                updateSelection();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedIndex = selectedIndex <= 0 ? items.length - 1 : selectedIndex - 1;
+                updateSelection();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (selectedIndex >= 0 && selectedIndex < items.length) {
+                    items[selectedIndex].click();
+                } else if (items.length > 0) {
+                    items[0].click();
+                }
+            }
+        });
+
+        input.addEventListener('input', (e: Event) => {
+            const target = e.target as HTMLInputElement;
+            if (searchTimeout) clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                performSearch(target.value);
+            }, 150);
+        });
+
+        input.addEventListener('focus', () => {
+            if (input.value.trim() !== '') {
+                resultsContainer.classList.remove('hidden');
+            }
+        });
+
+        clearBtn.addEventListener('click', () => {
+            input.value = '';
+            input.focus();
+            resultsContainer.classList.add('hidden');
+            clearBtn.classList.add('hidden');
+            selectedIndex = -1;
+        });
+
+        document.addEventListener('click', (e: MouseEvent) => {
+            if (!container.contains(e.target as Node)) {
+                resultsContainer.classList.add('hidden');
+                selectedIndex = -1;
+            }
+        });
+        
+        document.addEventListener('keydown', (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && !resultsContainer.classList.contains('hidden')) {
+                resultsContainer.classList.add('hidden');
+                input.blur();
+                selectedIndex = -1;
+            }
+        });
     });
 </script>

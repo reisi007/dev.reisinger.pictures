@@ -2,17 +2,22 @@
 import BaseLayout from './BaseLayout.astro';
 import ResponsiveImage from '../components/ResponsiveImage.astro';
 import type { CollectionEntry } from 'astro:content';
+import { getImage } from 'astro:assets';
 
 type Props = CollectionEntry<'simple'>['data'] & { alternateUrl?: string };
 
 const { title, description, heroImage, alternateUrl } = Astro.props;
+
+// Optimiertes SEO-Bild generieren
+const optimizedOgImage = heroImage ? await getImage({ src: heroImage, format: 'jpg', width: 1200 }) : null;
+const ogImageUrl = optimizedOgImage ? optimizedOgImage.src : undefined;
 ---
 
-<BaseLayout title={title} description={description} image={heroImage?.src} alternateUrl={alternateUrl}>
+<BaseLayout title={title} description={description} image={ogImageUrl} alternateUrl={alternateUrl}>
     <article>
         {heroImage && (
             <div class="w-full mb-8">
-                <ResponsiveImage src={heroImage} sizes="(max-width: 1024px) 100vw, 1020px" loading="eager" class="block mx-auto rounded-xl shadow-lg object-cover w-full aspect-video" />
+                <ResponsiveImage data-pagefind-meta="image[src]" src={heroImage} format="jpg" sizes="(max-width: 1024px) 100vw, 1020px" loading="eager" class="block mx-auto rounded-xl shadow-lg object-cover w-full aspect-video" />
             </div>
         )}
         <div class="max-w-3xl mx-auto">

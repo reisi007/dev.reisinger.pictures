@@ -3,6 +3,7 @@ import BaseLayout from './BaseLayout.astro';
 import ResponsiveImage from '../components/ResponsiveImage.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import { getEntry, type CollectionEntry } from 'astro:content';
+import { getImage } from 'astro:assets';
 import { getRelativeLocaleUrl } from 'astro:i18n';
 
 type Props = CollectionEntry<'blog'>['data'] & { alternateUrl?: string };
@@ -15,16 +16,20 @@ const lang = (Astro.currentLocale || 'de') as 'de' | 'en';
 const resolvedThema = thema?.id ? await getEntry('themen', thema.id) : null;
 
 // Tags laden
+// Optimiertes SEO-Bild generieren
+const optimizedOgImage = heroImage ? await getImage({ src: heroImage, format: 'jpg', width: 1200 }) : null;
+const ogImageUrl = optimizedOgImage ? optimizedOgImage.src : undefined;
+
 const resolvedTags = await Promise.all(
     (tags || []).map(tag => getEntry('tags', tag.id))
 ).then(results => results.filter((t): t is NonNullable<typeof t> => t !== null && t !== undefined));
 ---
 
-<BaseLayout title={title} description={description} image={heroImage?.src} alternateUrl={alternateUrl}>
+<BaseLayout title={title} description={description} image={ogImageUrl} alternateUrl={alternateUrl}>
     <article>
         {heroImage && (
                 <div class="w-full mb-8">
-                    <ResponsiveImage src={heroImage} sizes="(max-width: 1024px) 100vw, 1020px" loading="eager" class="block mx-auto rounded-xl shadow-lg object-cover w-full aspect-video" />
+                    <ResponsiveImage data-pagefind-meta="image[src]" src={heroImage} format="jpg" sizes="(max-width: 1024px) 100vw, 1020px" loading="eager" class="block mx-auto rounded-xl shadow-lg object-cover w-full aspect-video" />
                 </div>
         )}
         <div class="max-w-3xl mx-auto">
