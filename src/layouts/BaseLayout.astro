@@ -8,9 +8,10 @@ interface Props {
     description?: string;
     image?: string;
     alternateUrl?: string;
+    pagefindIgnore?: boolean;
 }
 
-const { title, description, image,alternateUrl } = Astro.props;
+const { title, description, image, alternateUrl, pagefindIgnore } = Astro.props;
 const currentLang = Astro.currentLocale || 'de';
 ---
 
@@ -19,7 +20,7 @@ const currentLang = Astro.currentLocale || 'de';
 		<BaseHead title={title} description={description} image={image} />
 	</head>
 
-	<body class="min-h-screen flex flex-col bg-base-100 text-base-content selection:bg-primary selection:text-primary-content">
+	<body class="min-h-screen flex flex-col bg-base-100 text-base-content selection:bg-primary selection:text-primary-content" {...(pagefindIgnore ? {'data-pagefind-ignore': 'all'} : {})}>
 		<Header alternateUrl={alternateUrl} />
 		<main class="grow container mx-auto px-4 py-8 lg:py-12 max-w-5xl">
             <slot />

@@ -1,0 +1,44 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+import { useTranslations, type SupportedLanguage } from '../../../i18n/ui';
+import { getRelativeLocaleUrl } from 'astro:i18n';
+
+export async function getStaticPaths() {
+    const allPosts = await getCollection('blog');
+    const configs = [
+        { lang: 'de', urlLang: undefined, prefix: 'archiv', altLang: 'en', altPrefix: 'archive' },
+        { lang: 'en', urlLang: 'en', prefix: 'archive', altLang: 'de', altPrefix: 'archiv' }
+    ];
+
+    return configs.map(c => {
+        const langPosts = allPosts.filter(p => p.data.lang === c.lang);
+        const years = Array.from(new Set(langPosts.map(p => p.data.pubDate.getFullYear().toString()))).sort((a,b) => b.localeCompare(a));
+        const altUrl = c.altLang === 'de' ? `/${c.altPrefix}/` : `/${c.altLang}/${c.altPrefix}/`;
+        return {
+            params: { lang: c.urlLang, archivePrefix: c.prefix },
+            props: { currentLang: c.lang, years, altUrl, prefix: c.prefix }
+        };
+    });
+}
+
+const { currentLang, years, altUrl, prefix } = Astro.props;
+const lang = currentLang as SupportedLanguage;
+const t = useTranslations(lang);
+
+---
+<BaseLayout title={t('archive.title')} alternateUrl={altUrl}>
+    <div class="max-w-4xl mx-auto">
+        <div class="mb-10 border-b border-base-300 pb-6 text-center">
+            <h1 class="text-4xl md:text-5xl font-black text-base-content tracking-tight">{t('archive.title')}</h1>
+            <p class="text-base-content/70 mt-3">{t('archive.subtitle')}</p>
+        </div>
+        <div class="flex flex-wrap justify-center gap-4">
+            {years.map((year: string) => (
+                <a href={getRelativeLocaleUrl(lang, `${prefix}/${year}/`)} class="btn btn-outline btn-primary text-xl px-8">
+                    {year}
+                </a>
+            ))}
+        </div>
+    </div>
+</BaseLayout>

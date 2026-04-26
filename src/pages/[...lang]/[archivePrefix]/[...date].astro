@@ -1,0 +1,152 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+import FormattedDate from '../../../components/FormattedDate.astro';
+import ResponsiveImage from '../../../components/ResponsiveImage.astro';
+import { getRelativeLocaleUrl } from 'astro:i18n';
+import { getBlogUrl } from '../../../utils/url';
+import { useTranslations, type SupportedLanguage } from '../../../i18n/ui';
+
+export async function getStaticPaths() {
+    const allPosts = await getCollection('blog');
+    const configs = [
+        { lang: 'de', urlLang: undefined, prefix: 'archiv', altLang: 'en', altPrefix: 'archive' },
+        { lang: 'en', urlLang: 'en', prefix: 'archive', altLang: 'de', altPrefix: 'archiv' }
+    ];
+
+    let paths: any[] = [];
+
+    configs.forEach(c => {
+        const langPosts = allPosts.filter(p => p.data.lang === c.lang);
+        const dateMap = new Map();
+
+        langPosts.forEach(post => {
+            const d = post.data.pubDate;
+            const year = d.getFullYear().toString();
+            const month = (d.getMonth() + 1).toString().padStart(2, '0');
+            const day = d.getDate().toString().padStart(2, '0');
+
+            if (!dateMap.has(year)) dateMap.set(year, new Map());
+            if (!dateMap.get(year).has(month)) dateMap.get(year).set(month, new Map());
+            if (!dateMap.get(year).get(month).has(day)) dateMap.get(year).get(month).set(day, []);
+
+            dateMap.get(year).get(month).get(day).push(post);
+        });
+
+        dateMap.forEach((months, year) => {
+            const yearPosts = Array.from(months.values()).flatMap((days: any) => Array.from(days.values()).flat());
+            const altUrl = c.altLang === 'de' ? `/${c.altPrefix}/${year}/` : `/${c.altLang}/${c.altPrefix}/${year}/`;
+            paths.push({
+                params: { lang: c.urlLang, archivePrefix: c.prefix, date: year },
+                props: { type: 'year', year, posts: yearPosts, currentLang: c.lang, altUrl, children: Array.from(months.keys()), prefix: c.prefix }
+            });
+
+            months.forEach((days: any, month: string) => {
+                const monthPosts = Array.from(days.values()).flat();
+                const altUrlMonth = c.altLang === 'de' ? `/${c.altPrefix}/${year}/${month}/` : `/${c.altLang}/${c.altPrefix}/${year}/${month}/`;
+                paths.push({
+                    params: { lang: c.urlLang, archivePrefix: c.prefix, date: `${year}/${month}` },
+                    props: { type: 'month', year, month, posts: monthPosts, currentLang: c.lang, altUrl: altUrlMonth, children: Array.from(days.keys()), prefix: c.prefix }
+                });
+
+                days.forEach((dayPosts: any, day: string) => {
+                    const altUrlDay = c.altLang === 'de' ? `/${c.altPrefix}/${year}/${month}/${day}/` : `/${c.altLang}/${c.altPrefix}/${year}/${month}/${day}/`;
+                    paths.push({
+                        params: { lang: c.urlLang, archivePrefix: c.prefix, date: `${year}/${month}/${day}` },
+                        props: { type: 'day', year, month, day, posts: dayPosts, currentLang: c.lang, altUrl: altUrlDay, children: [], prefix: c.prefix }
+                    });
+                });
+            });
+        });
+    });
+
+    return paths;
+}
+
+const { type, year, month, day, posts, currentLang, altUrl, children, prefix } = Astro.props;
+const lang = currentLang as SupportedLanguage;
+const t = useTranslations(lang);
+
+const sortedPosts = posts.sort((a: any, b: any) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+let title = '';
+let backUrl = '';
+let backText = '';
+
+if (type === 'year') {
+    title = `${t('archive.title')}: ${year}`;
+    backUrl = getRelativeLocaleUrl(lang, `${prefix}/`);
+    backText = t('archive.back');
+} else if (type === 'month') {
+    const monthName = new Date(parseInt(year), parseInt(month) - 1).toLocaleString(lang, { month: 'long' });
+    title = `${t('archive.title')}: ${monthName} ${year}`;
+    backUrl = getRelativeLocaleUrl(lang, `${prefix}/${year}/`);
+    backText = `${t('archive.back_to')} ${year}`;
+} else {
+    const monthName = new Date(parseInt(year), parseInt(month) - 1).toLocaleString(lang, { month: 'long' });
+    title = `${t('archive.title')}: ${monthName} ${day}, ${year}`;
+    backUrl = getRelativeLocaleUrl(lang, `${prefix}/${year}/${month}/`);
+    backText = `${t('archive.back_to')} ${monthName} ${year}`;
+}
+
+const postsFoundText = posts.length === 1 
+    ? t('general.post_found') 
+    : t('general.posts_found').replace('{count}', posts.length.toString());
+---
+<BaseLayout title={title} alternateUrl={altUrl}>
+    <div class="max-w-4xl mx-auto">
+        <div class="mb-10">
+            <a href={backUrl} class="btn btn-ghost btn-sm mb-6 pl-0 hover:bg-transparent hover:text-primary">
+                <span class="icon-[mdi--arrow-left] text-lg"></span> {backText}
+            </a>
+            
+            <h1 class="text-3xl md:text-5xl font-black text-base-content">{title}</h1>
+            <div class="text-base-content/70 mt-2">{postsFoundText}</div>
+
+            {children.length > 0 && (
+                <div class="flex flex-wrap gap-2 mt-6">
+                    {children.sort().map((child: string) => {
+                        const childUrl = type === 'year' 
+                            ? getRelativeLocaleUrl(lang, `${prefix}/${year}/${child}/`)
+                            : getRelativeLocaleUrl(lang, `${prefix}/${year}/${month}/${child}/`);
+                        
+                        let label = child;
+                        if (type === 'year') {
+                            label = new Date(parseInt(year), parseInt(child) - 1).toLocaleString(lang, { month: 'long' });
+                        }
+                        
+                        return (
+                            <a href={childUrl} class="badge badge-neutral badge-lg hover:badge-primary transition-colors py-4 px-4 no-underline">
+                                {label}
+                            </a>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {sortedPosts.map((post: any) => (
+                <a href={getBlogUrl(post)} class="card bg-base-200 hover:bg-base-300 transition-colors shadow-sm hover:shadow-md overflow-hidden">
+                    {post.data.heroImage && (
+                        <figure class="aspect-video overflow-hidden">
+                            <ResponsiveImage
+                                src={post.data.heroImage}
+                                alt={post.data.title}
+                                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                                class="object-cover w-full h-full"
+                            />
+                        </figure>
+                    )}
+                    <div class="card-body p-6">
+                        <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary mb-2">
+                            <span class="icon-[mdi--calendar-blank] text-base"></span>
+                            <FormattedDate date={post.data.pubDate} />
+                        </div>
+                        <h2 class="card-title text-xl leading-tight">{post.data.title}</h2>
+                    </div>
+                </a>
+            ))}
+        </div>
+    </div>
+</BaseLayout>

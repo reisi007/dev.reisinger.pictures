@@ -1,0 +1,94 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+import FormattedDate from '../../../components/FormattedDate.astro';
+import ResponsiveImage from '../../../components/ResponsiveImage.astro';
+import { getRelativeLocaleUrl } from 'astro:i18n';
+import { getBlogUrl } from '../../../utils/url';
+import { taxonomyConfigs, getPostsByTaxonomy } from '../../../utils/taxonomy';
+import { useTranslations, type SupportedLanguage } from '../../../i18n/ui';
+
+export async function getStaticPaths() {
+    const themen = await getCollection('themen');
+    const tags = await getCollection('tags');
+    const allPosts = await getCollection('blog');
+
+    return taxonomyConfigs.flatMap(c => {
+        const items = c.type === 'themen' ? themen : tags;
+        const postMap = getPostsByTaxonomy(allPosts, c.type, c.lang);
+
+        return items.map(item => {
+            const filteredPosts = postMap.get(item.id) || [];
+            if (filteredPosts.length === 0) return null;
+            
+            const altSlug = item.data[c.altLang].slug;
+            const alternateUrl = c.altLang === 'de' ? `/${c.altTaxonomySegment}/${altSlug}/` : `/${c.altLang}/${c.altTaxonomySegment}/${altSlug}/`;
+
+            return {
+                params: { lang: c.urlLang, taxonomy: c.taxonomySegment, term: item.data[c.lang].slug },
+                props: { taxonomyType: c.type, currentLang: c.lang, item, posts: filteredPosts, alternateUrl }
+            };
+        }).filter((p): p is NonNullable<typeof p> => p !== null);
+    });
+}
+
+const { taxonomyType, currentLang, item, posts, alternateUrl } = Astro.props;
+const lang = currentLang as SupportedLanguage;
+const t = useTranslations(lang);
+const localization = item.data[lang];
+const sortedPosts = posts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+const isTag = taxonomyType === 'tags';
+const taxonomyRoute = isTag ? t('route.tags') : t('route.themen');
+
+const backLinkText = isTag ? t('taxonomy.tags.back') : t('taxonomy.topics.back');
+const titlePrefix = isTag ? t('taxonomy.tags.prefix') : t('taxonomy.topics.prefix');
+const postsFoundText = posts.length === 1 
+    ? t('general.post_found') 
+    : t('general.posts_found').replace('{count}', posts.length.toString());
+---
+<BaseLayout title={`${titlePrefix} ${localization.name}`} alternateUrl={alternateUrl} pagefindIgnore={true}>
+    <div class="max-w-4xl mx-auto">
+        <div class="mb-10">
+            <a href={getRelativeLocaleUrl(lang, `${taxonomyRoute}/`)} class="btn btn-ghost btn-sm mb-6 pl-0 hover:bg-transparent hover:text-primary">
+                <span class="icon-[mdi--arrow-left] text-lg"></span> {backLinkText}
+            </a>
+            
+            {isTag ? (
+                <h1 class="text-3xl md:text-5xl font-black text-base-content flex items-center gap-3">
+                    <span class="icon-[mdi--tag-outline] text-4xl opacity-50"></span>
+                    <span class="text-primary">{localization.name}</span>
+                </h1>
+            ) : (
+                <h1 class="text-3xl md:text-5xl font-black text-base-content">
+                    {titlePrefix} <span class="text-primary">{localization.name}</span>
+                </h1>
+            )}
+            
+            <div class="text-base-content/70 mt-2">{postsFoundText}</div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {sortedPosts.map(post => (
+                <a href={getBlogUrl(post)} class="card bg-base-200 hover:bg-base-300 transition-colors shadow-sm hover:shadow-md overflow-hidden">
+                    {post.data.heroImage && (
+                            <figure class="aspect-video overflow-hidden">
+                                <ResponsiveImage
+                                        src={post.data.heroImage}
+                                        alt={post.data.title}
+                                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                                        class="object-cover w-full h-full"
+                                />
+                            </figure>
+                    )}
+                    <div class="card-body p-6">
+                        <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary mb-2">
+                            <span class="icon-[mdi--calendar-blank] text-base"></span>
+                            <FormattedDate date={post.data.pubDate} />
+                        </div>
+                        <h2 class="card-title text-xl leading-tight">{post.data.title}</h2>
+                    </div>
+                </a>
+            ))}
+        </div>
+    </div>
+</BaseLayout>
