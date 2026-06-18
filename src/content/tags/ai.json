@@ -1,0 +1,11 @@
+{
+  "id": "ai",
+  "de": {
+    "name": "KI",
+    "slug": "ki"
+  },
+  "en": {
+    "name": "AI",
+    "slug": "ai"
+  }
+}

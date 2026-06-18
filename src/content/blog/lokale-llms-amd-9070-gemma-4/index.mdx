@@ -1,0 +1,58 @@
+---
+title: "Das richtige Modell für den Zweck: Lokale VLMs auf der AMD 9070 im Performance- und Kostencheck"
+slug: "lokale-llms-amd-9070-gemma-4"
+description: "Muss es für strukturierte Bildanalysen immer die teure Cloud-API sein? Ein tiefer Blick auf die Performance von Gemma 4 12B lokal auf einer AMD Radeon RX 9070."
+pubDate: 2026-06-18
+thema: localllm
+tags: ["amd-9070", "gemma-4", "ai", "lm-studio", "llm-costs"]
+lang: "de"
+heroImage: "./hero.png"
+---
+
+In der modernen Software-Architektur neigen wir schnell dazu, mit Kanonen auf Spatzen zu schießen. Sobald ein neues Feature wie eine automatisierte Bildbeschreibung oder Metadaten-Extraktion ansteht, wandert der erste Blick fast automatisch zu den Cloud-Giganten wie OpenAI oder Anthropic. Doch im Jahr 2026 sieht die Open-Weights-Landschaft völlig anders aus. Lokale Modelle haben qualitativ massiv aufgeholt und die passende Hardware schont auf Dauer den Geldbeutel.
+
+Ich habe für mein Projekt **lmstudio-image-describer** die Performance der brandneuen **Google Gemma 4 12B** unter die Lupe genommen. Das Modell läuft im `gemma-4-12b-it@q6_k` Format mit einem schlanken Footprint von gerade einmal 10.0 GB direkt im VRAM. Als lokale Inferenz-Engine dient **LM Studio**, befeuert von einer **AMD Radeon RX 9070**. Die Ergebnisse zeigen deutlich: Lokale Modelle sind längst mehr als nur eine nette Spielerei – sie sind absolut praxistauglich.
+
+## ⚡ Lokale Performance: RDNA 4 zeigt Muskeln
+
+Die rohen Zahlen aus den Slot-Timings meines lokalen Setups sprechen eine klare Sprache:
+
+* **Prompt Evaluation:** `1385.01 ms` für 1184 Tokens. Das entspricht einer Verarbeitungsgeschwindigkeit von satten **854.87 Tokens pro Sekunde**.
+* **Token Generation (Inferenz):** `882.69 ms` für 44 Tokens. Das System spuckt die Antwort mit **49.85 Tokens pro Sekunde** aus.
+* **Gesamtzeit:** Gerade einmal **2267.70 ms** (ca. 2.27 Sekunden) für den vollständigen API-Call inklusive Bildverarbeitung.
+
+Dank der optimierten Architektur fließen Bild-Embeddings extrem effizient in den Kontext ein. Für interaktive Anwendungen, bei denen Nutzer Bilder hochladen und sofort strukturierte JSON-Metadaten erwarten, ist diese Latenz absolut genial.
+
+## 💰 Der Kostencheck: Cloud vs. Local Hardware
+
+Werfen wir einen Blick auf die aktuelle API-Preise (Stand Juni 2026) pro 1 Million Tokens auf dem Markt:
+
+| Modell / Plattform | Input-Kosten pro 1M Tokens | Output-Kosten pro 1M Tokens |
+| :--- | :--- | :--- |
+| **OpenAI GPT-5.5** | $5.00 | $30.00 |
+| **Anthropic Claude Sonnet 4.6** | $3.00 | $15.00 |
+| **Gemma 4 26B A4B (Cloud/OpenRouter)** | $0.06 | $0.33 |
+| **Gemma 4 12B (Lokal auf RX 9070)** | **$0.00** | **$0.00** |
+
+### Eine kleine Beispielrechnung
+Wenn du eine Plattform betreibst, die im Monat 100.000 Bilder verarbeitet, läufst du bei proprietären Modellen schnell in spürbare Kosten. Gehen wir pro Bild von 1.200 Input-Tokens (inklusive System-Prompts und JSON-Schemas) und 100 Output-Tokens aus:
+
+* **Mit GPT-5.5:** 120M Input-Tokens ($600) + 10M Output-Tokens ($300) = **$900 pro Monat**.
+* **Mit Claude Sonnet 4.6:** 120M Input-Tokens ($360) + 10M Output-Tokens ($150) = **$510 pro Monat**.
+* **Mit der lokalen AMD 9070:** Nach dem Kauf der Hardware fallen lediglich minimale Stromkosten an. Bei einer Anschaffung der Grafikkarte amortisiert sich das gesamte Setup oft schon nach wenigen Monaten vollständig – bei absolutem Datenschutz, da keine Bilddaten deine Infrastruktur verlassen.
+
+## 🧠 Wann macht lokal Sinn? (Und wo liegen die Grenzen?)
+
+Trotz der beeindruckenden Leistung darf man die Kirche im Dorf lassen: Lokale Setups sind keine eierlegenden Wollmilchsäue.
+
+Das größte Nadelöhr bei lokalen Modellen ist der **VRAM der GPU**. Sobald der Kontext explodiert, läuft man unweigerlich in Speicherprobleme oder die Inferenzgeschwindigkeit bricht ein. Für strukturierte Workflows liegt die pragmatische Komfortzone lokaler 12B-Modelle bei **maximal 3k Kontext**.
+
+Für Anwendungsfälle wie die Bildbeschreibung ist das jedoch **überhaupt kein Problem**: Da Bilder clientseitig vor dem Senden optimiert und herunterskaliert werden, verbraucht der gesamte Payload selten mehr als 1.5k bis 2k Tokens.
+
+Ein wichtiger technischer Fakt am Rande: Wer glaubt, durch extremes Multithreading oder parallele API-Anfragen auf derselben Consumer-Karte Zeit zu sparen, wird enttäuscht. Mehrere parallele Inferences beschleunigen den Gesamtdurchsatz kaum, da die Compute-Einheiten und die Speicherbandbreite der GPU bei der Generierung ohnehin bereits voll ausgelastet sind. Sequentielles Abarbeiten oder leichtes Batching ist hier der sauberere Weg.
+
+## 🎯 Fazit
+
+Das Mantra für moderne KI-Integrationen lautet: **Nimm das richtige Modell für den richtigen Zweck.**
+
+Musst du eine gigantische, monolithische Codebase mit Millionen von Tokens analysieren? Dann greif zu Claude oder GPT. Aber für klar abgegrenzte, repetitive Aufgaben im schmalen Kontextfenster – wie lokale Bildbeschreibungen, automatisiertes Tagging oder datenschutzkritische Edge-Inferenz – sind lokale Modelle auf moderner Consumer-Hardware wie der AMD 9070 der kommerziellen Cloud sowohl wirtschaftlich als auch architektonisch haushoch überlegen.

@@ -1,0 +1,11 @@
+{
+  "id": "llm-costs",
+  "de": {
+    "name": "LLM-Kosten",
+    "slug": "llm-kosten"
+  },
+  "en": {
+    "name": "LLM Costs",
+    "slug": "llm-costs"
+  }
+}

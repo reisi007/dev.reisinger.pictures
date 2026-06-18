@@ -1,0 +1,58 @@
+---
+title: "Choosing the Right Model for the Job: Checking Performance and Costs of Local VLMs on the AMD 9070"
+slug: "local-llms-amd-9070-gemma-4"
+description: "Do you really need expensive Cloud APIs for structured image analysis? A deep dive into running Gemma 4 12B locally on an AMD Radeon RX 9070."
+pubDate: 2026-06-18
+thema: localllm
+tags: ["amd-9070", "gemma-4", "ai", "lm-studio", "llm-costs"]
+lang: "en"
+heroImage: "./hero.png"
+---
+
+In modern software architecture, we often tend to over-engineer solutions. As soon as a new requirement like automated image captioning or metadata extraction comes up, our eyes automatically wander toward cloud giants like OpenAI or Anthropic. But in 2026, the open-weights landscape looks entirely different. Local models have caught up massively in terms of quality, and running them on dedicated local hardware saves serious money over time.
+
+I recently evaluated the performance of the brand-new **Google Gemma 4 12B** for my **lmstudio-image-describer** project. The model runs as `gemma-4-12b-it@q6_k` with a highly optimized memory footprint of just 10.0 GB straight inside the VRAM. The inference local server engine of choice is **LM Studio**, powered by an **AMD Radeon RX 9070**. The results clearly prove that local models are no longer just a hobbyist plaything—they are fully production-ready.
+
+## ⚡ Local Performance: RDNA 4 Flexes Its Muscles
+
+The raw slot-timing figures from my local system environment speak for themselves:
+
+* **Prompt Evaluation:** `1385.01 ms` for 1184 tokens. That translates to an impressive processing speed of **854.87 tokens per second**.
+* **Token Generation (Inference):** `882.69 ms` for 44 tokens. The model generates responses at **49.85 tokens per second**.
+* **Total Time:** Just **2267.70 ms** (approx. 2.27 seconds) for the complete roundtrip, including vision processing.
+
+Thanks to the streamlined architecture, visual embeddings blend seamlessly into the prompt context. For interactive frontends where users upload images and expect instant, structured JSON metadata, this latency profile is brilliant.
+
+## 💰 Cost Comparison: Cloud vs. Local Hardware
+
+Let's look at the commercial API market prices (as of June 2026) per 1 million tokens:
+
+| Model / Platform | Input Cost per 1M Tokens | Output Cost per 1M Tokens |
+| :--- | :--- | :--- |
+| **OpenAI GPT-5.5** | $5.00 | $30.00 |
+| **Anthropic Claude Sonnet 4.6** | $3.00 | $15.00 |
+| **Gemma 4 26B A4B (Cloud/OpenRouter)** | $0.06 | $0.33 |
+| **Gemma 4 12B (Local on RX 9070)** | **$0.00** | **$0.00** |
+
+### A Practical Math Example
+If you run an application processing 100,000 images per month, proprietary APIs can accumulate heavy costs quickly. Let's assume an average of 1,200 input tokens (including system instructions and strict JSON schemas) and 100 output tokens per asset:
+
+* **Using GPT-5.5:** 120M input tokens ($600) + 10M output tokens ($300) = **$900 per month**.
+* **Using Claude Sonnet 4.6:** 120M input tokens ($360) + 10M output tokens ($150) = **$510 per month**.
+* **Using Local AMD 9070:** After the initial hardware purchase, you only pay for electricity. The graphics card amortizes itself completely in just a few months—all while ensuring 100% data privacy since no media files ever leave your infrastructure.
+
+## 🧠 When Does Going Local Make Sense? (And Where Are the Limits?)
+
+Despite the fantastic performance, it's vital to stay realistic: local consumer-grade setups aren't magical solutions for everything.
+
+The primary bottleneck with local hardware configurations is the **GPU's VRAM**. As soon as your context size explodes, you run straight into memory boundaries, causing speeds to tank. For structured workflows, the pragmatic comfort zone of a local 12B model sits at a **3k maximum context window**.
+
+Fortunately, for use cases like image description, this boundary is **not a real issue at all**. Because images are optimized and downscaled on the client side before transmission, the total context weight rarely exceeds 1.5k to 2k tokens.
+
+One crucial technical detail to remember: trying to force heavy concurrent multithreading or sending multiple parallel inference streams to the same consumer card will yield diminishing returns. Running multiple parallel inferences scarcely accelerates things because the GPU compute units and memory bandwidth are already fully saturated during the generation process. Processing tasks sequentially or via a controlled lightweight batch queue is much more efficient.
+
+## 🎯 Final Verdict
+
+The ultimate rule for modern AI architecture is: **Use the right model for the right purpose.**
+
+If you need to analyze a massive, interconnected enterprise codebase containing millions of tokens, cloud giants are worth every dollar. But for tightly scoped, highly repetitive tasks within constrained context windows—like local media sorting, automated tagging, or privacy-critical edge processing—running local models on consumer silicon like the AMD 9070 is both economically and architecturally superior to the commercial cloud.

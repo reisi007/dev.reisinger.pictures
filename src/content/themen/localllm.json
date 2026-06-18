@@ -1,0 +1,11 @@
+{
+  "id": "localllm",
+  "de": {
+    "name": "Lokale LLMs",
+    "slug": "lokale-llms"
+  },
+  "en": {
+    "name": "Local LLMs",
+    "slug": "local-llms"
+  }
+}
