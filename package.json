@@ -35,6 +35,6 @@
     "@tailwindcss/typography": "^0.5.19",
     "daisyui": "^5.5.19",
     "pagefind": "^1.5.2",
-    "repomix": "^1.13.1"
+    "repomix": "^1.14.1"
   }
 }
